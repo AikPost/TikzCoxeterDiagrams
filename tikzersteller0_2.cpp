@@ -30,14 +30,14 @@ double uy=2;
 double nodedist=1.95; //Abstand der Knoten
 double labeldist=0.15;
 double linewidth=0.9; //Liniendicke in mm
-string nodecolor="black";
-string nodelabelcolor="white";
-string linelabelcolor="black";
-string Textmodifier="\\small"; // Enter latex text style modifier for the node labels, like /small /huge,...
-
 double orbitradius=0.45;
 double orbitlinewidth = 0.4;
 double reldiagdist=2.5;
+string linelabelcolor="black";
+string nodecolor="black";
+string nodelabelcolor="white";
+string Textmodifier="\\small"; // Enter latex text style modifier for the node labels, like /small /huge,...
+
 
 
 //constants
@@ -640,11 +640,17 @@ int settings(){
   cout << "[C] Distance of nodes:" << nodedist << "\n";
   cout << "[D] Distance of labels to lines:" << labeldist << "\n";
   cout << "[E] Linewidth:" << linewidth << "\n";
-  cout << "[F] Linelabelcolor:" << linelabelcolor << "\n";
 
-  cout << "[G] Nodecolor:" << nodecolor << "\n";
-  cout << "[H] Nodelabelcolor:" << nodelabelcolor << "\n";
-  cout << "[I] Textmodifier:" << Textmodifier << "\n";
+  cout << "[F] Radius of Orbits:" << orbitradius << "\n";
+  cout << "[G] Linewidth of Orbits:" << orbitlinewidth << "\n";
+  cout << "[H] Distance between relative and absolute Diagrams:" << reldiagdist << "\n";
+
+
+
+  cout << "[I] Linelabelcolor:" << linelabelcolor << "\n";
+  cout << "[J] Nodecolor:" << nodecolor << "\n";
+  cout << "[K] Nodelabelcolor:" << nodelabelcolor << "\n";
+  cout << "[L] Textmodifier:" << Textmodifier << "\n";
 
   cout << "[X] Exit \n";
   cout << "Select a letter to change the settings:\n";
@@ -671,17 +677,29 @@ int settings(){
   }
   if (Option== "F"){
     cout << "Enter new Setting in the appropriate format:\n";
-    cin >> linelabelcolor;
+    cin >> orbitradius;
   }
   if (Option== "G"){
     cout << "Enter new Setting in the appropriate format:\n";
-    cin >> nodecolor;
+    cin >> orbitlinewidth;
   }
   if (Option== "H"){
     cout << "Enter new Setting in the appropriate format:\n";
-    cin >> nodelabelcolor;
+    cin >> reldiagdist;
   }
   if (Option== "I"){
+    cout << "Enter new Setting in the appropriate format:\n";
+    cin >> linelabelcolor;
+  }
+  if (Option== "J"){
+    cout << "Enter new Setting in the appropriate format:\n";
+    cin >> nodecolor;
+  }
+  if (Option== "K"){
+    cout << "Enter new Setting in the appropriate format:\n";
+    cin >> nodelabelcolor;
+  }
+  if (Option== "L"){
     cout << "Enter new Setting in the appropriate format:\n";
     cin >> Textmodifier;
   }
@@ -838,20 +856,26 @@ int coxenter(){
 
 int enterorbit(){
   string msg = "\nPress [Enter] to continue...";
-  int Option=-1;
-  string Inputcode;
-  while(Option > 5 || Option < 0){
-    cout << "\n[0] Exit\nFor which diagram do you want to enter an orbit? [1-5]?\n";
-    cin >> Option;
-    if (Option==0) return 0;
-  }
-  cout << "Enter Orbit Code:\n";
+  int Opt=-1;
+  string Inputcode="";
+  cout << "[0] Exit\nFor which diagram do you want to enter an orbit? [1-5]?\n";
+
+
+  cin >> Opt;
+  cin.clear();
+  cin.ignore();
+
+  if(!(Opt==1 || Opt==2 || Opt==3 || Opt==4 || Opt==5)) return 1;
+  if(Opt == 0) return 0;
+
+  cout << "[0] to exit.\nEnter Orbit Code:\n";
   cin >> Inputcode;
-  if(Option== 1)  Orb1= Orbits(node1,Inputcode);
-  if(Option== 2)  Orb2= Orbits(node2,Inputcode);
-  if(Option== 3)  Orb3= Orbits(node3,Inputcode);
-  if(Option== 4)  Orb4= Orbits(node4,Inputcode);
-  if(Option== 5)  Orb5= Orbits(node5,Inputcode);
+  if(Inputcode=="0") return 0;
+  if(Opt== 1)  Orb1= Orbits(node1,Inputcode);
+  if(Opt== 2)  Orb2= Orbits(node2,Inputcode);
+  if(Opt== 3)  Orb3= Orbits(node3,Inputcode);
+  if(Opt== 4)  Orb4= Orbits(node4,Inputcode);
+  if(Opt== 5)  Orb5= Orbits(node5,Inputcode);
 
 
 
@@ -860,8 +884,8 @@ int enterorbit(){
   cin.clear();
   cin.get();
   cout << "\n";
-  return 2;
 
+  return 2;
 
 }
 
@@ -869,7 +893,7 @@ int makeindex(){
   int Diagabs=-1;
   int Diagrel=-1;
   while(Diagabs >5 || Diagabs <0){
-    cout << "\n[0] Exit\nWhich diagram should be the absolute one [1-5]?\n";
+    cout << "[0] Exit\nWhich diagram should be the absolute one [1-5]?\n";
     cin >> Diagabs;
     if(Diagabs == 0 ) return 0;
   }
@@ -925,6 +949,7 @@ int topmenu(){
   string Option;
   int r=-1;
   while(true){
+    Option="";
     system("cls");
     r=-1;
     cout << "What do you want to do? \n";
@@ -934,12 +959,16 @@ int topmenu(){
     cout << "[D] Testcode \n";
     cout << "[E] Settings\n";
     cin >> Option;
+
+
     if(Option == "A") {
       while(r!=0){
         system("cls");
         r=coxenter();
       }
     }
+
+
     if(Option == "B"){
 
       while(r!=0){
