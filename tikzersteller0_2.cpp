@@ -25,8 +25,8 @@ namespace patch
 
 //VARIABLEN --------------------------------
 
-double ux=2;
-double uy=2;
+double ux=0;
+double uy=0;
 double nodedist=1.95; //Abstand der Knoten
 double labeldist=0.15;
 double linewidth=0.9; //Liniendicke in mm
@@ -35,10 +35,26 @@ double orbitlinewidth = 0.4;
 double reldiagdist=2.5;
 string linelabelcolor="black";
 string nodecolor="black";
-string nodelabelcolor="white";
-string Textmodifier="\\small"; // Enter latex text style modifier for the node labels, like /small /huge,...
+string nodelabelintcolor="white";
+string nodelabelintstyle="\\small"; // Enter latex text style modifier for the node labels, like /small /huge,...
+
+//to be added to settings:
+string orbitlabelcolor="black";
+string nodelabelextcolor="purple";
+string nodelabelextstyle="\\small";
+double nodelabelextdist=0.5;
+double noderadius=0.3;
+bool displaynodeintlabel=false; //show nodelabel inside
+bool displaylinelabel=false;
+bool displayorbitlabel=false;
 
 
+
+bool displaynodelabelext=true; //show nodelabel outside the node
+//not to be added to settings:
+double orbitlabelradiusmod=1.4;//modifies distance of the label of the orbt to the radius
+string orbitlabelstyle="\\small";
+string linelabelstyle="\\small";
 
 //constants
 
@@ -83,6 +99,11 @@ public:
 
   D2V orthonorm(){
     D2V ret=D2V(b/sqrt(a*a + b*b),-a/sqrt(a*a + b*b));
+    return ret;
+
+  }
+  D2V norm(){
+    D2V ret=D2V(a/sqrt(a*a + b*b),b/sqrt(a*a + b*b));
     return ret;
 
   }
@@ -257,7 +278,15 @@ public:
   }
 
   string tikznode(){
-    return "\\draw[" + nodecolor + ",fill="+ nodecolor +"] ("+ patch::to_string(this->xpos) + "," + patch::to_string(this->ypos) + ") circle (.3) node[text="+ nodelabelcolor + "] {"+ Textmodifier +" "+ nodelabel + "}; \n";
+    D2V pos= D2V(this->xpos,this->ypos);
+    string ret= "\\draw[" + nodecolor + ",fill="+ nodecolor +"] ("+ patch::to_string(this->xpos) + "," + patch::to_string(this->ypos) + ") circle (" + patch::to_string(noderadius)+")";
+    if(displaynodeintlabel) ret+= "node[text="+ nodelabelintcolor + "] {"+ nodelabelintstyle +" "+ nodelabel + "}; \n";
+    else ret+= ";\n";
+    if(displaynodelabelext) {
+      ret+="\\node[text="+  nodelabelextcolor+ "] at "+ pos.add(D2V(0,-1).scale(nodelabelextdist)).getTupel()+ "{"+nodelabelextstyle+" "+ this->nodelabel + "}; \n";
+    }
+    return ret;
+
 
   }
 
@@ -283,7 +312,7 @@ public:
         nx=(this->xpos+prev->xpos)/2-labeldist*(prev->ypos - this->ypos);
         ny=(this->ypos+prev->ypos)/2-labeldist*(this->xpos - prev->xpos);
       }
-      r+= "\\node[text="+ linelabelcolor + "] at (" + patch::to_string(nx) + "," + patch::to_string(ny) +") {"+ this->ord_prev + "}; \n";
+      if(displaylinelabel) r+= "\\node[text="+ linelabelcolor + "] at (" + patch::to_string(nx) + "," + patch::to_string(ny) +") {"+ this->ord_prev + "}; \n";
 
     }
     return r;
@@ -482,10 +511,11 @@ public:
     cout << permutation <<"\n";
   }
 
-  string twoorbitcode(string n1, string n2){
+  string twoorbitcode(string n1, string n2,string orbName){
     string ret="";
     D2V pos1= startnode->getposofnamednode(n1);
     D2V pos2= startnode->getposofnamednode(n2);
+    D2V vect= pos1.getvect(pos2).norm();
     D2V orth= pos1.getvect(pos2).orthonorm().scale(orbitradius);
 
     ret+="%% Orbit---------------------------------\n";
@@ -494,16 +524,18 @@ public:
     ret+="\\draw[fill=white,white] " + pos1.add(orth).getTupel() +  " -- " + pos1.subtract(orth).getTupel() +" -- "+ pos2.subtract(orth).getTupel() + " -- " + pos2.add(orth).getTupel() + " -- cycle;\n";
     ret+="\\draw[dotted, line width="+ patch::to_string(orbitlinewidth) + "mm] " +pos1.subtract(orth).getTupel() +" -- "+ pos2.subtract(orth).getTupel() +" ;\n";
     ret+="\\draw[dotted, line width="+ patch::to_string(orbitlinewidth) + "mm] " + pos1.add(orth).getTupel() +" -- "+ pos2.add(orth).getTupel() + ";\n";
+    if(displayorbitlabel) ret+="\\node[text="+ orbitlabelcolor + "] at " + pos1.add(vect.scale(orbitlabelradiusmod*orbitradius)).getTupel() +  "{"+ orbitlabelstyle + " " + orbName + "}; \n";
     ret+="%% Orbitend -------------------------------------\n\n";
     return ret;
   }
 
-  string oneorbitcode(string n){
+  string oneorbitcode(string n,string orbName){
     string ret="";
     D2V pos1= startnode->getposofnamednode(n);
-
+    D2V vect=D2V(0,-1);
     ret+="%% Orbit---------------------------------\n";
     ret+="\\draw[dotted, line width="+ patch::to_string(orbitlinewidth) + "mm] " + pos1.getTupel() +" circle (" + patch::to_string(orbitradius) + ");\n";
+    if(displayorbitlabel) ret+="\\node[text="+ orbitlabelcolor + "] at " + pos1.add(vect.scale(orbitlabelradiusmod*orbitradius)).getTupel() +  "{"+ orbitlabelstyle + " " + orbName + "}; \n";
     ret+="%% Orbitend -------------------------------------\n\n";
     return ret;
   }
@@ -554,7 +586,7 @@ public:
         }
         Nodename2=str.substr(0,j); // second Nodename found
         str.erase(0,j+1);
-        ret+=twoorbitcode(Nodename1,Nodename2);
+        ret+=twoorbitcode(Nodename1,Nodename2,"X");
         processed=false;
       }
       if(processed){
@@ -563,7 +595,7 @@ public:
           str.erase(0,i+1); //first Nodename found, search for next
 
 
-          ret+=oneorbitcode(Nodename1);
+          ret+=oneorbitcode(Nodename1,"X");
         }
       }
       ctsel++;
@@ -649,8 +681,8 @@ int settings(){
 
   cout << "[I] Linelabelcolor:" << linelabelcolor << "\n";
   cout << "[J] Nodecolor:" << nodecolor << "\n";
-  cout << "[K] Nodelabelcolor:" << nodelabelcolor << "\n";
-  cout << "[L] Textmodifier:" << Textmodifier << "\n";
+  cout << "[K] Nodelabelcolor external:" << nodelabelintcolor << "\n";
+  cout << "[L] Internal Textstyle of Nodes:" << nodelabelintstyle << "\n";
 
   cout << "[X] Exit \n";
   cout << "Select a letter to change the settings:\n";
@@ -697,11 +729,11 @@ int settings(){
   }
   if (Option== "K"){
     cout << "Enter new Setting in the appropriate format:\n";
-    cin >> nodelabelcolor;
+    cin >> nodelabelintcolor;
   }
   if (Option== "L"){
     cout << "Enter new Setting in the appropriate format:\n";
-    cin >> Textmodifier;
+    cin >> nodelabelintstyle;
   }
 
   if (Option== "X"){
@@ -761,30 +793,42 @@ int coxenter(){
     case 'a':
       cout << "Enter: \n";
       cin >> Input1;
+      node1->clear();
+      node1->Interpret(Input1);
+      node1->centerx(0);
       break;
     case 'b':
       cout << "Enter: \n";
       cin >> Input2;
+      node2->clear();
+      node2->Interpret(Input2);
+      node2->centerx(0);
       break;
     case 'c':
       cout << "Enter: \n";
       cin >> Input3;
+      node3->clear();
+      node3->Interpret(Input3);
+      node3->centerx(0);
       break;
     case 'd':
       cout << "Enter: \n";
       cin >> Input4;
+      node4->clear();
+      node4->Interpret(Input4);
+      node4->centerx(0);
       break;
     case 'e':
       cout << "Enter: \n";
       cin >> Input5;
+      node5->clear();
+      node5->Interpret(Input5);
+      node5->centerx(0);
       break;
 
     case '1':
       msg="";
       akt=getnode(1);
-      akt->clear();
-      akt->Interpret(Input1);
-      akt->centerx(0);
       system("cls");
       cout << "\n"<<"%%"<<"Lines \n";
       cout << akt->Lineret();
@@ -794,9 +838,7 @@ int coxenter(){
     case '2':
       msg="";
       akt=getnode(2);
-      akt->clear();
-      akt->Interpret(Input2);
-      akt->centerx(0);
+
       system("cls");
       cout << "\n"<<"%%"<<"Lines \n";
       cout << akt->Lineret();
@@ -806,9 +848,6 @@ int coxenter(){
     case '3':
       msg="";
       akt=getnode(3);
-      akt->clear();
-      akt->Interpret(Input3);
-      akt->centerx(0);
       system("cls");
       cout << "\n"<<"%%"<<"Lines \n";
       cout << akt->Lineret();
@@ -818,9 +857,7 @@ int coxenter(){
     case '4':
       msg="";
       akt=getnode(4);
-      akt->clear();
-      akt->Interpret(Input4);
-      akt->centerx(0);
+
       system("cls");
       cout << "\n"<<"%%"<<"Lines \n";
       cout << akt->Lineret();
@@ -830,9 +867,7 @@ int coxenter(){
     case '5':
       msg="";
       akt=getnode(5);
-      akt->clear();
-      akt->Interpret(Input5);
-      akt->centerx(0);
+
       system("cls");
       cout << "\n"<<"%%"<<"Lines \n";
       cout << akt->Lineret();
@@ -865,8 +900,10 @@ int enterorbit(){
   cin.clear();
   cin.ignore();
 
-  if(!(Opt==1 || Opt==2 || Opt==3 || Opt==4 || Opt==5)) return 1;
+
   if(Opt == 0) return 0;
+  if(!(Opt==1 || Opt==2 || Opt==3 || Opt==4 || Opt==5)) return 1;
+
 
   cout << "[0] to exit.\nEnter Orbit Code:\n";
   cin >> Inputcode;
